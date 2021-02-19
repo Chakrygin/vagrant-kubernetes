@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+
+echo
+echo "############################################################"
+echo "## Installing kubelet, kubeadm and kubectl...             ##"
+echo "############################################################"
+echo
+
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
 apt-get update

@@ -19,6 +19,7 @@ Vagrant.configure("2") do |config|
 
         master.vm.hostname = "kube-master"
         master.vm.network "private_network", ip: "192.168.10.10"
+        master.vm.network "forwarded_port", id: "kubectl", guest: 6443, host: 6443
 
         master.vm.provision "shell", path: "provision/setup-node-master.sh"
         master.vm.provision "shell", path: "provision/setup-flannel.sh"
