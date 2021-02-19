@@ -14,5 +14,3 @@ cp -i "/etc/kubernetes/admin.conf" "/vagrant/.kube/config"
 mkdir -p "/home/vagrant/.kube"
 cp -i "/etc/kubernetes/admin.conf" "/home/vagrant/.kube/config"
 chown "vagrant" "/home/vagrant/.kube/config"
-
-curl -s https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed 's/10.244.0.0/10.10.0.0/g'
