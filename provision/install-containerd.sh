@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-echo
 echo "############################################################"
 echo "## Installing containerd...                               ##"
 echo "############################################################"
-echo
 
 # https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 

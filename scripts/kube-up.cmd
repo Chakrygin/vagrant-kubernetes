@@ -4,7 +4,10 @@ pushd "%~dp0.."
 
 vagrant up
 
-xcopy /s /y ".kube" "%UserProfile%\.kube\"
-xcopy /s /y ".kube" "%UserProfile%\YandexDisk\.kube\"
+mkdir "%UserProfile%\.kube\"
+copy ".kube\config" "%UserProfile%\.kube\config"
+
+mkdir "%UserProfile%\YandexDisk\.kube\"
+copy ".kube\config_external" "%UserProfile%\YandexDisk\.kube\config"
 
 popd
