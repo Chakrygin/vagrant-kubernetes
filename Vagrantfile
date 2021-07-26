@@ -1,5 +1,5 @@
 BOX_NAME = "ubuntu/focal64"
-BOX_VERSION = "20210216.0.0"
+BOX_VERSION = "20210624.0.0"
 
 VM_MEMORY = 2048
 VM_CPU = 2
@@ -8,9 +8,10 @@ WORKER_NODES = 1
 
 Vagrant.configure("2") do |config|
 
-    config.vm.provision "shell", path: "provision/install-mc.sh"
+    config.vm.provision "shell", path: "provision/install-tools.sh"
     config.vm.provision "shell", path: "provision/install-containerd.sh"
     config.vm.provision "shell", path: "provision/install-kubernetes.sh"
+
     config.vm.provision "shell", path: "provision/setup-node.sh"
 
     config.vm.define "kube-master" do |master|
@@ -18,8 +19,7 @@ Vagrant.configure("2") do |config|
         master.vm.box_version = BOX_VERSION
 
         master.vm.hostname = "kube-master"
-        master.vm.network "private_network", ip: "192.168.10.10"
-        master.vm.network "forwarded_port", id: "kubectl", guest: 6443, host: 6443
+        master.vm.network "public_network", ip: "192.168.1.100"
 
         master.vm.provision "shell", path: "provision/setup-node-master.sh"
         master.vm.provision "shell", path: "provision/setup-flannel.sh"
@@ -37,7 +37,7 @@ Vagrant.configure("2") do |config|
             worker.vm.box_version = BOX_VERSION
 
             worker.vm.hostname = "kube-worker-#{n}"
-            worker.vm.network "private_network", ip: "192.168.10.1#{n}"
+            worker.vm.network "public_network", ip: "192.168.1.10#{n}"
 
             worker.vm.provision "shell", path: "provision/setup-node-worker.sh"
 

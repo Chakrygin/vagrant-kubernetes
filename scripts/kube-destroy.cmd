@@ -4,7 +4,12 @@ pushd "%~dp0.."
 
 vagrant destroy -f
 
-rmdir /s /q ".kube"
-rmdir /s /q ".tmp"
+if exist ".kube" (
+    rmdir /s /q ".kube"
+)
+
+if exist ".tmp" (
+    rmdir /s /q ".tmp"
+)
 
 popd
