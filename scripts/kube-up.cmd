@@ -4,6 +4,10 @@ pushd "%~dp0.."
 
 vagrant up
 
+if errorlevel 1 (
+    exit 1
+)
+
 if not exist ".kube\config" (
     echo File ".kube\config" not found!
 )
