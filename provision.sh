@@ -103,15 +103,21 @@ if [[ "$NODE_NAME" == *"master"* ]]; then
     mkdir -p "/root/.kube"
     cp "/etc/kubernetes/admin.conf" "/root/.kube/config"
 
-    mkdir -p "/vagrant/.kube"
-    cp "/etc/kubernetes/admin.conf" "/vagrant/.kube/config"
-
     mkdir -p "/home/vagrant/.kube"
     cp "/etc/kubernetes/admin.conf" "/home/vagrant/.kube/config"
     chown "vagrant" "/home/vagrant/.kube/config"
 
+    mkdir -p "/vagrant/.kube"
+    cp "/etc/kubernetes/admin.conf" "/vagrant/.kube/config"
+
     # Allow scheduling of pods on the master
     kubectl taint node "$NODE_NAME" "node-role.kubernetes.io/master:NoSchedule-"
+
+    echo "############################################################"
+    echo "## Installing helm...                                     ##"
+    echo "############################################################"
+
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
     echo "############################################################"
     echo "## Setup flannel...                                       ##"
@@ -122,32 +128,46 @@ if [[ "$NODE_NAME" == *"master"* ]]; then
         kubectl apply -f -
 
     echo "############################################################"
-    echo "## Setup nginx ingress...                                 ##"
+    echo "## Setup haproxy ingress...                               ##"
     echo "############################################################"
 
-    curl -s "https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/baremetal/deploy.yaml" |
-        kubectl apply -f -
+    helm repo add haproxy-ingress "https://haproxy-ingress.github.io/charts"
 
-    # TODO: Fix ValidatingWebhookConfiguration
-    kubectl delete ValidatingWebhookConfiguration/ingress-nginx-admission
+    helm install haproxy-ingress haproxy-ingress/haproxy-ingress \
+        --create-namespace \
+        --namespace ingress-haproxy \
+        --version 0.13.0 \
+        --set controller.hostNetwork=true
 
-    EXTERNAL_IPS=$(
-        kubectl get service/ingress-nginx-controller \
-            --namespace ingress-nginx \
-            --output jsonpath='{.spec.externalIPs[*]}'
-    )
+    # # curl -s "https://raw.githubusercontent.com/kubernetes/ingress-nginx/v1.0.0-alpha.1/deploy/static/provider/baremetal/deploy.yaml" |
+    # #     kubectl apply -f -
 
-    if [[ -z "$EXTERNAL_IPS" ]]; then
-        kubectl patch service/ingress-nginx-controller \
-            --namespace ingress-nginx \
-            --patch '{"spec":{"externalIPs":["'$NODE_IP'"]}}'
-    else
-        EXTERNAL_IPS=$(echo "$EXTERNAL_IPS" | sed 's/ /\",\"/g')
+    # # # TODO: Fix ValidatingWebhookConfiguration
+    # # kubectl delete ValidatingWebhookConfiguration/ingress-nginx-admission
 
-        kubectl patch service/ingress-nginx-controller \
-            --namespace ingress-nginx \
-            --patch '{"spec":{"externalIPs":["'$EXTERNAL_IPS'","'$NODE_IP'"]}}'
-    fi
+    # # kubectl patch service/ingress-nginx-controller \
+    # #     --namespace ingress-nginx \
+    # #     --patch '{"spec":{"externalIPs":["'$NODE_IP'"]}}'
+
+    echo "############################################################"
+    echo "## Setup kube-dns...                                      ##"
+    echo "############################################################"
+
+    kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-dns
+  namespace: kube-system
+data:
+  upstreamNameservers: |
+    ["8.8.8.8"]
+EOF
+
+    sleep 1
+
+    kubectl rollout restart deployment/coredns \
+        --namespace kube-system
 
 elif [[ "$NODE_NAME" == *"worker"* ]]; then
 
@@ -156,6 +176,28 @@ elif [[ "$NODE_NAME" == *"worker"* ]]; then
     echo "############################################################"
 
     /vagrant/.tmp/join.sh
+
+    # Copy config
+    mkdir -p "/root/.kube"
+    cp "/vagrant/.kube/config" "/root/.kube/config"
+
+    mkdir -p "/home/vagrant/.kube"
+    cp "/vagrant/.kube/config" "/home/vagrant/.kube/config"
+    chown "vagrant" "/home/vagrant/.kube/config"
+
+    # # echo "############################################################"
+    # # echo "## Setup nginx ingress...                                 ##"
+    # # echo "############################################################"
+
+    # # EXTERNAL_IPS=$(
+    # #     kubectl get service/ingress-nginx-controller \
+    # #         --namespace ingress-nginx \
+    # #         --output jsonpath='{.spec.externalIPs[*]}' | sed 's/ /\",\"/g'
+    # # )
+
+    # # kubectl patch service/ingress-nginx-controller \
+    # #     --namespace ingress-nginx \
+    # #     --patch '{"spec":{"externalIPs":["'$EXTERNAL_IPS'","'$NODE_IP'"]}}'
 
 else
     echo "Unknown node type: $NODE_NAME"
